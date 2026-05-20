@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>研发管线+项目周期进度管理</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Microsoft YaHei", sans-serif;
+    }
+
+    :root {
+      --main-blue: #56A3A2;
+      --gray-bg: #666973;
+      --red-lag: #ff6b6b;
+      /* 浅色系底色 */
+      --page-bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-color: #2c3e50;
+      --text-light: #606770;
+      --border-color: #e2e8f0;
+    }
+
+    body {
+      background-color: var(--page-bg);
+      padding: 4vw 3vw;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5vw;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* LOGO 取消悬浮 正常顶部布局 */
+    .header-logo {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+      position: static !important;
+    }
+
+    .header-logo img {
+      height: clamp(30px, 4vw, 50px);
+      width: auto;
+      max-width: 200px;
+      object-fit: contain;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 1vw;
+      margin-bottom: 1vw;
+      flex-wrap: wrap;
+    }
+
+    .switch-btn {
+      padding: 1vw 2.5vw;
+      background: #ffffff;
+      color: var(--text-color);
+      border: 1px solid var(--main-blue);
+      border-radius: 0.5vw;
+      font-size: clamp(14px, 1.1vw, 20px);
+      cursor: pointer;
+      transition: 0.3s;
+      white-space: nowrap;
+    }
+
+    .switch-btn.active {
+      background: var(--main-blue);
+      border-color: var(--main-blue);
+      color: #fff;
+    }
+
+    .switch-btn:hover:not(.active) {
+      background: #eef2f5;
+    }
+
+    .sub-btn-group {
+      display: none;
+      gap: 0.8vw;
+      margin-left: 2vw;
+      margin-bottom: 1vw;
+      flex-wrap: wrap;
+    }
+
+    .sub-btn-group.show {
+      display: flex;
+    }
+
+    .sub-switch-btn {
+      padding: 0.6vw 1.8vw;
+      background: #ffffff;
+      color: var(--text-light);
+      border: 1px solid var(--border-color);
+      border-radius: 0.4vw;
+      font-size: clamp(12px, 0.95vw, 18px);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .sub-switch-btn.active {
+      background: var(--main-blue);
+      border-color: var(--main-blue);
+      color: #fff;
+    }
+
+    .pipeline-container {
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2vw;
+      overflow-x: auto;
+      padding: 20px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    }
+
+    .stage-row,
+    .pipeline-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-width: 1000px;
+    }
+
+    .stage-row {
+      padding-bottom: 0.7vw;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-light);
+      font-size: clamp(12px, 1vw, 18px);
+    }
+
+    .total-week-desc {
+      font-size: 0.85vw;
+      color: #888;
+      margin-top: 0.3vw;
+    }
+
+    .pipeline-item {
+      height: 3.2vw;
+      min-height: 40px;
+    }
+
+    .col-name {
+      width: 12vw;
+      min-width: 140px;
+      padding-left: 0.5vw;
+      text-align: left;
+    }
+
+    .col-leader {
+      width: 8vw;
+      min-width: 100px;
+      padding-left: 0.5vw;
+      text-align: left;
+    }
+
+    .col-step {
+      flex: 1;
+      padding: 0 0.2vw;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .col-total {
+      width: 7vw;
+      min-width: 90px;
+      text-align: center;
+    }
+
+    .item-name {
+      width: 12vw;
+      min-width: 140px;
+      color: var(--text-color);
+      font-size: clamp(13px, 1vw, 18px);
+      font-weight: 500;
+      padding-left: 0.5vw;
+      white-space: nowrap;
+    }
+
+    .item-leader {
+      width: 8vw;
+      min-width: 100px;
+      color: var(--text-light);
+      font-size: clamp(12px, 1vw, 18px);
+      padding-left: 0.5vw;
+    }
+
+    .item-total {
+      width: 7vw;
+      min-width: 90px;
+      text-align: center;
+      color: var(--text-color);
+      font-size: clamp(12px, 1vw, 18px);
+      line-height: 1.2;
+    }
+
+    .track {
+      flex: 1;
+      height: 0.7vw;
+      min-height: 6px;
+      background-color: #e5e7eb;
+      border-radius: 0.35vw;
+      position: relative;
+      overflow: hidden;
+      margin: 0 0.2vw;
+    }
+
+    .progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      border-radius: 0.35vw;
+      width: 0;
+      transition: all 1.8s cubic-bezier(0.42, 0, 0.18, 1.01);
+    }
+
+    .p1 {
+      background-color: var(--main-blue);
+    }
+
+    .p2 {
+      background-color: var(--gray-bg);
+    }
+
+    .step-track {
+      width: 100%;
+      height: 0.7vw;
+      min-height: 6px;
+      background: #e5e7eb;
+      border-radius: 0.35vw;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      border-radius: 0.35vw;
+      width: 0;
+      transition: all 1.8s cubic-bezier(0.42, 0, 0.18, 1.01);
+    }
+
+    .bar-blue {
+      background: var(--main-blue);
+    }
+
+    .bar-gray {
+      background: var(--gray-bg);
+    }
+
+    .bar-red {
+      background: var(--red-lag);
+    }
+
+    .week-info {
+      font-size: 0.75vw;
+      color: #999;
+      margin-top: 0.3vw;
+    }
+
+    .table-two,
+    .table-three,
+    .table-four,
+    .table-five,
+    .table-six {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header-logo">
+    <img
+      src="https://p5-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/9415fa0d668e4827894839bd97a82c61.png~tplv-a9rns2rl98-image.png?lk3s=8e244e95&rcl=20260520160457C1814DD5C94302B34E60&rrcfp=dafada99&x-expires=2095488297&x-signature=JTEuUfFNk8unGOxTMJoZmF72lQ4%3D">
+  </div>
+
+  <div class="btn-group">
+    <button class="switch-btn" id="btn1">噬菌体研发管线</button>
+    <button class="switch-btn" id="btn2">裂解酶研发管线</button>
+    <button class="switch-btn" id="btn3">项目周期进度汇总</button>
+  </div>
+
+  <div class="sub-btn-group" id="subBtnBox">
+    <button class="sub-switch-btn active" data-sub="sub1">产品进度表</button>
+    <button class="sub-switch-btn" data-sub="sub2">噬菌体科研进度表</button>
+    <button class="sub-switch-btn" data-sub="sub3">裂解酶科研进度表</button>
+    <button class="sub-switch-btn" data-sub="sub4">医院临床进度表</button>
+  </div>
+
+  <div class="pipeline-container table-one">
+    <div class="stage-row">
+      <div class="col-name">研发管线进度</div>
+      <div class="col-step">噬菌体资源建库</div>
+      <div class="col-step">靶向菌株筛选</div>
+      <div class="col-step">菌株精准鉴定</div>
+      <div class="col-step">离体药效验证</div>
+      <div class="col-step">动物测试</div>
+      <div class="col-step">临床试验研究</div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">大肠杆菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="50%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">沙门菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="50%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">肺炎克雷伯菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="50%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">非结核分枝杆菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="15%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">金黄色葡萄球菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="15%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">痤疮丙酸杆菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="15%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">铜绿假单胞菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="5%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">鲍曼不动杆菌</div>
+      <div class="track">
+        <div class="progress p1" data-width="5%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline-container table-two">
+    <div class="stage-row">
+      <div class="col-name">研发管线进度</div>
+      <div class="col-step">预测</div>
+      <div class="col-step">筛选</div>
+      <div class="col-step">活性鉴定</div>
+      <div class="col-step">中试表达</div>
+      <div class="col-step">动物实验</div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">金葡菌裂解酶</div>
+      <div class="track">
+        <div class="progress p1" data-width="50%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">痤疮菌裂解酶</div>
+      <div class="track">
+        <div class="progress p1" data-width="30%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">变形链球菌裂解酶</div>
+      <div class="track">
+        <div class="progress p1" data-width="10%"></div>
+      </div>
+    </div>
+    <div class="pipeline-item">
+      <div class="item-name">分枝杆菌裂解酶</div>
+      <div class="track">
+        <div class="progress p1" data-width="10%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline-container table-three sub1">
+    <div class="stage-row">
+      <div class="col-name">任务品类</div>
+      <div class="col-leader">负责人</div>
+      <div class="col-step">包装生产</div>
+      <div class="col-step">原料生产</div>
+      <div class="col-step">成品生产</div>
+      <div class="col-step">注册上市</div>
+      <div class="col-total">项目总时长</div>
+    </div>
+    <div class="stage-row total-week-desc" style="padding-bottom:1vw;border:none;">
+      <div class="col-name"></div>
+      <div class="col-leader"></div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-total">已用/总时长</div>
+    </div>
+    <div class="pipeline-item" data-w1="4" data-w2="8" data-w3="4" data-w4="8" data-w1-period="6" data-w2-period="7"
+      data-w3-period="3" data-w4-period="8" data-stage="5">
+      <div class="item-name">犬类</div>
+      <div class="item-leader">盼盼</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="4" data-w2="8" data-w3="4" data-w4="8" data-w1-period="2" data-w2-period="10"
+      data-w3-period="0" data-w4-period="0" data-stage="2">
+      <div class="item-name">猫类</div>
+      <div class="item-leader">盼盼</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="8" data-w2="8" data-w3="4" data-w4="12" data-w1-period="8" data-w2-period="4"
+      data-w3-period="0" data-w4-period="0" data-stage="2">
+      <div class="item-name">鹦鹉类</div>
+      <div class="item-leader">盼盼</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+  </div>
+
+  <div class="pipeline-container table-four sub2">
+    <div class="stage-row">
+      <div class="col-name">科研项目</div>
+      <div class="col-leader">项目负责人</div>
+      <div class="col-step">噬菌体建库总数量</div>
+      <div class="col-step">菌株筛选</div>
+      <div class="col-step">菌株鉴定</div>
+      <div class="col-total">项目总时长</div>
+    </div>
+    <div class="stage-row total-week-desc" style="padding-bottom:1vw;border:none;">
+      <div class="col-name"></div>
+      <div class="col-leader"></div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-total">已用/总时长</div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">大肠杆菌噬菌体研究</div>
+      <div class="item-leader">盼盼</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">沙门菌噬菌体研究</div>
+      <div class="item-leader">盼盼</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">肺炎克雷伯菌噬菌体</div>
+      <div class="item-leader">甘雄耀</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">分枝杆菌噬菌体研究</div>
+      <div class="item-leader">钟育富</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">金葡菌噬菌体研究</div>
+      <div class="item-leader">钟育富</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">痤疮菌噬菌体研究</div>
+      <div class="item-leader">许玉婷</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">铜绿假单胞菌噬菌体</div>
+      <div class="item-leader">待定</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="6" data-w2="5" data-w3="4" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">鲍曼不动杆菌噬菌体</div>
+      <div class="item-leader">待定</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+  </div>
+
+  <div class="pipeline-container table-five sub3">
+    <div class="stage-row">
+      <div class="col-name">科研项目</div>
+      <div class="col-leader">项目负责人</div>
+      <div class="col-step">靶点预测</div>
+      <div class="col-step">酶源筛选</div>
+      <div class="col-step">活性鉴定</div>
+      <div class="col-total">项目总时长</div>
+    </div>
+    <div class="stage-row total-week-desc" style="padding-bottom:1vw;border:none;">
+      <div class="col-name"></div>
+      <div class="col-leader"></div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-total">已用/总时长</div>
+    </div>
+    <div class="pipeline-item" data-w1="5" data-w2="6" data-w3="5" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">金葡菌裂解酶研发</div>
+      <div class="item-leader">许玉婷</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="5" data-w2="6" data-w3="5" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">痤疮菌裂解酶研发</div>
+      <div class="item-leader">许玉婷</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="5" data-w2="6" data-w3="5" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">链球菌裂解酶研发</div>
+      <div class="item-leader">许玉婷</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="5" data-w2="6" data-w3="5" data-w4="0" data-w1-period="0" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="0">
+      <div class="item-name">分枝杆菌裂解酶研发</div>
+      <div class="item-leader">待定</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+  </div>
+
+  <div class="pipeline-container table-six sub4">
+    <div class="stage-row">
+      <div class="col-name">临床项目</div>
+      <div class="col-leader">项目负责人</div>
+      <div class="col-step">研究方案制定</div>
+      <div class="col-step">伦理审批</div>
+      <div class="col-step">临床研究开展</div>
+      <div class="col-total">项目总时长</div>
+    </div>
+    <div class="stage-row total-week-desc" style="padding-bottom:1vw;border:none;">
+      <div class="col-name"></div>
+      <div class="col-leader"></div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-step">计划周期</div>
+      <div class="col-total">已用/总时长</div>
+    </div>
+    <div class="pipeline-item" data-w1="8" data-w2="8" data-w3="32" data-w4="40" data-w1-period="1" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="1">
+      <div class="item-name">慢性肺部感染</div>
+      <div class="item-leader">余权丽</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="8" data-w2="8" data-w3="24" data-w4="32" data-w1-period="1" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="1">
+      <div class="item-name">糖尿病足感染</div>
+      <div class="item-leader">余权丽</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="8" data-w2="4" data-w3="24" data-w4="32" data-w1-period="1" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="1">
+      <div class="item-name">口腔感染</div>
+      <div class="item-leader">余权丽</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+    <div class="pipeline-item" data-w1="12" data-w2="8" data-w3="40" data-w4="48" data-w1-period="1" data-w2-period="0"
+      data-w3-period="0" data-w4-period="0" data-stage="1">
+      <div class="item-name">肺移植术后感染</div>
+      <div class="item-leader">余权丽</div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="col-step">
+        <div class="step-track">
+          <div class="step-bar"></div>
+        </div>
+        <div class="week-info"></div>
+      </div>
+      <div class="item-total total-num"></div>
+    </div>
+  </div>
+
+  <script>
+    const btn1 = document.getElementById('btn1');
+    const btn2 = document.getElementById('btn2');
+    const btn3 = document.getElementById('btn3');
+    const table1 = document.querySelector('.table-one');
+    const table2 = document.querySelector('.table-two');
+    const subBtnBox = document.getElementById('subBtnBox');
+    const subBtns = document.querySelectorAll('.sub-switch-btn');
+    const allSubTables = document.querySelectorAll('.sub1,.sub2,.sub3,.sub4');
+
+    function startTabAnimate(box) {
+      let bars = box.querySelectorAll('.progress,.step-bar');
+      bars.forEach(b => b.style.width = '0');
+      setTimeout(() => {
+        bars.forEach(b => {
+          if (b.dataset.width) b.style.width = b.dataset.width;
+          else if (b.classList.contains('step-bar')) b.style.width = b.targetWidth || '0%';
+        })
+      }, 200)
+    }
+
+    function showMainTable(table, activeBtn) {
+      table1.style.display = 'none';
+      table2.style.display = 'none';
+      document.querySelectorAll('.table-three,.table-four,.table-five,.table-six').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+      activeBtn.classList.add('active');
+      if (activeBtn === btn3) {
+        subBtnBox.classList.add('show');
+        switchSubTable('sub1');
+      } else {
+        subBtnBox.classList.remove('show');
+        table.style.display = 'flex';
+        startTabAnimate(table);
+      }
+    }
+
+    function switchSubTable(subName) {
+      subBtns.forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`.sub-switch-btn[data-sub="${subName}"]`).classList.add('active');
+      allSubTables.forEach(t => t.style.display = 'none');
+      let showTab = document.querySelector(`.${subName}`);
+      showTab.style.display = 'flex';
+      initAllProgress();
+      startTabAnimate(showTab);
+    }
+
+    function initAllProgress() {
+      let items = document.querySelectorAll('[data-w1]');
+      items.forEach(item => {
+        let w1 = +(item.dataset.w1 || 0), w2 = +(item.dataset.w2 || 0);
+        let w3 = +(item.dataset.w3 || 0), w4 = +(item.dataset.w4 || 0);
+        let p1 = +(item.dataset.w1Period || 0);
+        let p2 = +(item.dataset.w2Period || 0);
+        let p3 = +(item.dataset.w3Period || 0);
+        let p4 = +(item.dataset.w4Period || 0);
+        let stage = +(item.dataset.stage || 0);
+
+        let totalPlan = w1 + w2 + w3 + w4;
+        let totalUsed = p1 + p2 + p3 + p4;
+        let totalHtml = `${totalUsed}周 / ${totalPlan}周`;
+        if (totalUsed > totalPlan) totalHtml += `<br><span style="color:#ff6b6b;font-size:0.7vw">项目严重滞后</span>`;
+        let totalDom = item.querySelector('.total-num');
+        if (totalDom) totalDom.innerHTML = totalHtml;
+
+        let barArr = item.querySelectorAll('.step-bar');
+        let txtArr = item.querySelectorAll('.week-info');
+        barArr.forEach(bar => { bar.style.width = '0'; bar.className = 'step-bar'; bar.targetWidth = '0%' });
+        txtArr.forEach(t => t.innerText = '');
+
+        if (stage > 1) {
+          let diff = w1 - p1;
+          let tip = "项目阶段｜已完成";
+          diff > 0 ? tip += `-提前${diff}周` : diff < 0 ? tip += `-滞后${-diff}周` : tip += "-准时";
+          txtArr[0].innerText = tip;
+          barArr[0].className = "step-bar bar-blue";
+          barArr[0].targetWidth = "100%";
+        } else if (stage === 1) {
+          let diff = w1 - p1;
+          if (diff < 0) {
+            txtArr[0].innerText = `项目阶段｜滞后${-diff}周`;
+            barArr[0].className = "step-bar bar-red";
+            barArr[0].targetWidth = "75%";
+          } else {
+            txtArr[0].innerText = `项目阶段｜剩余${diff}周`;
+            barArr[0].className = "step-bar bar-blue";
+            barArr[0].targetWidth = (p1 / w1) * 100 + "%";
+          }
+        } else {
+          txtArr[0].innerText = "项目阶段｜暂未开始";
+          barArr[0].className = "step-bar bar-gray";
+        }
+
+        if (stage > 2) {
+          let diff = w2 - p2;
+          let tip = "项目阶段｜已完成";
+          diff > 0 ? tip += `-提前${diff}周` : diff < 0 ? tip += `-滞后${-diff}周` : tip += "-准时";
+          txtArr[1].innerText = tip;
+          barArr[1].className = "step-bar bar-blue";
+          barArr[1].targetWidth = "100%";
+        } else if (stage === 2) {
+          let diff = w2 - p2;
+          if (diff < 0) {
+            txtArr[1].innerText = `项目阶段｜滞后${-diff}周`;
+            barArr[1].className = "step-bar bar-red";
+            barArr[1].targetWidth = "75%";
+          } else {
+            txtArr[1].innerText = `项目阶段｜剩余${diff}周`;
+            barArr[1].className = "step-bar bar-blue";
+            barArr[1].targetWidth = (p2 / w2) * 100 + "%";
+          }
+        } else {
+          txtArr[1].innerText = "项目阶段｜暂未开始";
+          barArr[1].className = "step-bar bar-gray";
+        }
+
+        if (stage > 3) {
+          let diff = w3 - p3;
+          let tip = "项目阶段｜已完成";
+          diff > 0 ? tip += `-提前${diff}周` : diff < 0 ? tip += `-滞后${-diff}周` : tip += "-准时";
+          txtArr[2].innerText = tip;
+          barArr[2].className = "step-bar bar-blue";
+          barArr[2].targetWidth = "100%";
+        } else if (stage === 3) {
+          let diff = w3 - p3;
+          if (diff < 0) {
+            txtArr[2].innerText = `项目阶段｜滞后${-diff}周`;
+            barArr[2].className = "step-bar bar-red";
+            barArr[2].targetWidth = "75%";
+          } else {
+            txtArr[2].innerText = `项目阶段｜剩余${diff}周`;
+            barArr[2].className = "step-bar bar-blue";
+            barArr[2].targetWidth = (p3 / w3) * 100 + "%";
+          }
+        } else {
+          txtArr[2].innerText = "项目阶段｜暂未开始";
+          barArr[2].className = "step-bar bar-gray";
+        }
+
+        if (barArr[3]) {
+          if (stage > 4) {
+            let diff = w4 - p4;
+            let tip = "项目阶段｜已完成";
+            diff > 0 ? tip += `-提前${diff}周` : diff < 0 ? tip += `-滞后${-diff}周` : tip += "-准时";
+            txtArr[3].innerText = tip;
+            barArr[3].className = "step-bar bar-blue";
+            barArr[3].targetWidth = "100%";
+          } else if (stage === 4) {
+            let diff = w4 - p4;
+            if (diff < 0) {
+              txtArr[3].innerText = `项目阶段｜滞后${-diff}周`;
+              barArr[3].className = "step-bar bar-red";
+              barArr[3].targetWidth = "75%";
+            } else {
+              txtArr[3].innerText = `项目阶段｜剩余${diff}周`;
+              barArr[3].className = "step-bar bar-blue";
+              barArr[3].targetWidth = (p4 / w4) * 100 + "%";
+            }
+          } else {
+            txtArr[3].innerText = "项目阶段｜暂未开始";
+            barArr[3].className = "step-bar bar-gray";
+          }
+        }
+      })
+    }
+
+    btn1.onclick = () => showMainTable(table1, btn1);
+    btn2.onclick = () => showMainTable(table2, btn2);
+    btn3.onclick = () => showMainTable(table1, btn3);
+    subBtns.forEach(btn => {
+      btn.onclick = () => switchSubTable(btn.dataset.sub);
+    })
+
+    window.onload = () => {
+      showMainTable(table1, btn1);
+    }
+  </script>
+</body>
+
+</html>
